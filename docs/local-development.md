@@ -36,3 +36,4 @@
 - Flight Simulator: `http://localhost:8091`
 - Schema Registry (host): `http://localhost:8085`
 - Streaming Analytics API: `http://localhost:8086/api/analytics/routes/reliability`
+- OTel Collector: `http://localhost:4318`

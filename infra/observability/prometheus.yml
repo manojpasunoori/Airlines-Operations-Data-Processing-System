@@ -26,3 +26,18 @@ scrape_configs:
     metrics_path: "/actuator/prometheus"
     static_configs:
       - targets: ["kpi-service:8084"]
+
+  - job_name: "streaming-analytics"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["streaming-analytics:8086"]
+
+  - job_name: "ingestion-service"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["ingestion-service:8090"]
+
+  - job_name: "flight-simulator"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["flight-simulator:8091"]

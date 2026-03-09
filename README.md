@@ -1,98 +1,116 @@
 # AeroStream: Real-Time Airline Operations Intelligence Platform
 
-AeroStream is an event-driven airline operations platform designed for production-grade distributed systems interviews. It ingests live or simulated flight updates, detects delay propagation, and exposes operational intelligence through APIs, streaming analytics, and a real-time dashboard.
+AeroStream is a production-style, event-driven distributed systems portfolio project focused on airline operations intelligence. The platform ingests flight events, analyzes delay propagation in near-real time, and publishes route reliability metrics to APIs and live dashboards.
 
-## System Goals
-
-- Ingest high-volume flight telemetry with low-latency pipelines.
-- Model delay propagation across routes and hubs.
-- Serve operational insights to planners in real time.
-- Operate with production observability, reliability, and deployment workflows.
-
-## Architecture Overview
+## System Architecture
 
 ```mermaid
 flowchart LR
-    FAA["FAA / OpenSky APIs"] --> ING["FastAPI Ingestion Service"]
-    SIM["Flight Event Simulator"] --> ING
-    ING --> KAFKA["Kafka Topics\nflight.events.v1"]
-    KAFKA --> STREAMS["Spring Boot Streaming Analytics"]
-    STREAMS --> PG[(PostgreSQL)]
-    STREAMS --> SSE["Realtime API (SSE)"]
-    MONGO[(MongoDB Route Config)] --> STREAMS
+    FAA["FAA/OpenSky Feeds"] --> ING["FastAPI Ingestion Service"]
+    SIM["Flight Simulator"] --> ING
+    ING --> KAFKA["Kafka + Schema Registry"]
+    KAFKA --> STREAM["Spring Kafka Streams Analytics"]
+    STREAM --> PG[(PostgreSQL Analytics)]
+    STREAM --> SSE["SSE Endpoint"]
+    MONGO[(MongoDB Route Config)] --> STREAM
     SSE --> UI["React + TypeScript Dashboard"]
-    KAFKA --> OBS["Metrics + Traces"]
-    ING --> OBS
-    STREAMS --> OBS
+    STREAM --> PROM["Prometheus"]
+    ING --> PROM
+    UI --> GW["API Gateway"]
+    PROM --> GRAF["Grafana"]
 ```
-
-## Core Components
-
-- `services/ingestion-service` (FastAPI): receives upstream events and publishes to Kafka.
-- `services/flight-simulator` (Python): generates synthetic operations scenarios.
-- `services/streaming-analytics` (Spring Boot): consumes events, computes route reliability and delay propagation.
-- `dashboard` (React + TypeScript): real-time operational dashboard via SSE.
-- `infra/observability`: Prometheus, Grafana dashboards, OpenTelemetry collector.
-- `infra/helm` + `infra/k8s`: Kubernetes deployment assets.
 
 ## Event Flow
 
-1. Flight updates arrive from FAA/OpenSky connectors or simulator.
-2. Ingestion service validates and publishes Avro events to Kafka.
-3. Streaming analytics consumes events and performs windowed aggregations.
-4. Aggregated KPIs are persisted to PostgreSQL.
-5. Route and airport operational configuration is read from MongoDB.
-6. Dashboard receives push updates through SSE and renders live metrics.
+1. Flight events are produced by FAA/OpenSky connectors or the simulator.
+2. Ingestion validates and publishes Avro events to topic `flight.events.v1`.
+3. Streaming analytics computes 5-minute route delay windows.
+4. Reliability scores are persisted to PostgreSQL and pushed via SSE.
+5. Dashboard renders live route metrics.
+6. Prometheus and Grafana expose operational health and performance.
 
-## Data Stores
+## Infrastructure Design
 
-- PostgreSQL: derived analytics, route reliability, and historical aggregates.
-- MongoDB: route metadata, scenario configuration, and policy settings.
+- Runtime: Docker Compose for local multi-service environment.
+- Event Backbone: Kafka + Zookeeper + Schema Registry.
+- Data: PostgreSQL (analytics), MongoDB (route config), MySQL (legacy domain services).
+- Observability: Prometheus, Grafana provisioning, OpenTelemetry collector.
+- Deployment: Helm chart + env values + Kustomize overlays + ArgoCD app.
+- CI/CD: GitHub Actions with test/build/image scan/publish flow.
 
-## Non-Functional Priorities
+## Tech Stack
 
-- Idempotent event processing and safe retries.
-- Partition-aware consumer scaling.
-- End-to-end tracing and service-level metrics.
-- CI/CD with build, test, security scan, and deploy gates.
-- GitOps deployment model with environment promotion.
+- Python FastAPI (`services/ingestion-service`, `services/flight-simulator`)
+- Apache Kafka + Avro schema contracts (`schemas/flight_event.avsc`)
+- Java Spring Boot + Kafka Streams (`services/streaming-analytics`)
+- React + TypeScript dashboard (`dashboard`)
+- Docker + Kubernetes/Helm + ArgoCD GitOps
 
-## Repository Layout
+## Local Setup
 
-- `gateway`: API gateway and edge concerns.
-- `services`: microservices (ingestion, simulator, analytics, domain services).
-- `infra`: compose, observability, Kubernetes, Helm, ArgoCD manifests.
-- `load-test`: performance validation assets.
-- `.github/workflows`: CI/CD pipelines.
-
-## Quick Start (Local)
-
-1. Copy environment template:
+1. Copy env template:
    - `cp .env.example .env`
-2. Start core stack:
+2. Start platform:
    - `docker compose up -d --build`
-3. Verify services:
+3. Open services:
    - Gateway: `http://localhost:8080`
+   - Ingestion: `http://localhost:8090`
+   - Simulator: `http://localhost:8091`
+   - Streaming Analytics: `http://localhost:8086`
+   - Dashboard: `http://localhost:5173`
    - Prometheus: `http://localhost:9090`
    - Grafana: `http://localhost:3000`
 
+Detailed docs:
+
+- `docs/local-development.md`
+- `docs/kafka-contracts.md`
+- `docs/streaming-analytics.md`
+- `docs/observability.md`
+- `docs/kubernetes-deployment.md`
+- `docs/realtime-dashboard.md`
+
+## Demo Instructions
+
+- Quick demo script (PowerShell): `demo/scripts/run_demo.ps1`
+- Quick demo script (bash): `demo/scripts/run_demo.sh`
+- Walkthrough: `docs/demo-walkthrough.md`
+- Example dataset: `demo/datasets/sample_flights.jsonl`
+
+2-minute demo strategy:
+
+1. `docker compose up -d --build`
+2. start simulator storm scenario
+3. show dashboard live route updates
+4. show Grafana metrics and reliability API
+
 ## Engineering Decisions
 
-- Kafka as the event backbone to decouple ingestion, simulation, and analytics.
-- Avro + Schema Registry to enforce event contracts and support evolution.
-- Spring Boot for JVM streaming workloads and ecosystem maturity.
-- FastAPI for rapid ingestion development and Python ecosystem integration.
-- SSE for low-overhead dashboard push updates.
+- Kafka + Avro contracts to decouple producers/consumers and support schema evolution.
+- Spring Kafka Streams for deterministic, windowed delay propagation analytics.
+- SSE for low-overhead live updates without websocket broker complexity.
+- Split operational data stores by workload: PostgreSQL analytics + Mongo config.
+- OTel + Prometheus metrics first-class for production debugging and SLO tracking.
+- Helm + ArgoCD for repeatable environment promotion (dev/staging/prod).
 
-## Status
+## Repository Structure
 
-This repository is being upgraded in progressive production-style commits:
+- `gateway/`
+- `services/`
+- `dashboard/`
+- `infra/`
+- `schemas/`
+- `docs/`
+- `demo/`
 
-- Local developer platform
-- Kafka contract maturity
-- Synthetic simulation workflows
-- Realtime dashboard updates
-- Observability and tracing
-- CI/CD hardening
-- Kubernetes + GitOps rollout
-- Demo readiness
+## Current Status
+
+The project now includes:
+
+- local distributed stack bootstrapping
+- schema-governed Kafka eventing
+- synthetic delay scenario simulation
+- streaming analytics with route reliability scoring
+- real-time dashboard updates
+- production-style observability and CI/CD assets
+- Kubernetes Helm + GitOps deployment scaffolding

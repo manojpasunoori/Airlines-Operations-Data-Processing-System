@@ -1,13 +1,23 @@
-name: CI
+name: CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
 
 jobs:
-  build-test:
+  java-build-test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - gateway
+          - services/flight-service
+          - services/crew-service
+          - services/delay-service
+          - services/kpi-service
+          - services/streaming-analytics
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -15,26 +25,141 @@ jobs:
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: "temurin"
+          distribution: temurin
           java-version: "17"
-          cache: "maven"
+          cache: maven
 
-      - name: Build gateway
-        working-directory: gateway
+      - name: Build and test ${{ matrix.service }}
+        working-directory: ${{ matrix.service }}
         run: mvn -B clean verify
 
-      - name: Build flight-service
-        working-directory: services/flight-service
-        run: mvn -B clean verify
+  python-build-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - services/ingestion-service
+          - services/flight-simulator
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Build crew-service
-        working-directory: services/crew-service
-        run: mvn -B clean verify
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-      - name: Build delay-service
-        working-directory: services/delay-service
-        run: mvn -B clean verify
+      - name: Install deps
+        working-directory: ${{ matrix.service }}
+        run: pip install -r requirements.txt
 
-      - name: Build kpi-service
-        working-directory: services/kpi-service
-        run: mvn -B clean verify
+      - name: Smoke import
+        working-directory: ${{ matrix.service }}
+        run: python -c "import app.main"
+
+  dashboard-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: dashboard/package.json
+
+      - name: Install and build dashboard
+        working-directory: dashboard
+        run: |
+          npm install
+          npm run build
+
+  docker-build-and-scan:
+    needs: [java-build-test, python-build-test, dashboard-build]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - name: gateway
+            context: gateway
+          - name: flight-service
+            context: services/flight-service
+          - name: crew-service
+            context: services/crew-service
+          - name: delay-service
+            context: services/delay-service
+          - name: kpi-service
+            context: services/kpi-service
+          - name: streaming-analytics
+            context: services/streaming-analytics
+          - name: ingestion-service
+            context: services/ingestion-service
+          - name: flight-simulator
+            context: services/flight-simulator
+          - name: dashboard
+            context: dashboard
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        run: docker build -t aerostream/${{ matrix.image.name }}:${{ github.sha }} ./${{ matrix.image.context }}
+
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: aerostream/${{ matrix.image.name }}:${{ github.sha }}
+          format: table
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+  publish-images:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [docker-build-and-scan]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - name: gateway
+            context: gateway
+          - name: flight-service
+            context: services/flight-service
+          - name: crew-service
+            context: services/crew-service
+          - name: delay-service
+            context: services/delay-service
+          - name: kpi-service
+            context: services/kpi-service
+          - name: streaming-analytics
+            context: services/streaming-analytics
+          - name: ingestion-service
+            context: services/ingestion-service
+          - name: flight-simulator
+            context: services/flight-simulator
+          - name: dashboard
+            context: dashboard
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        run: |
+          IMAGE=ghcr.io/${{ github.repository_owner }}/aerostream-${{ matrix.image.name }}:${{ github.sha }}
+          docker build -t ${IMAGE} ./${{ matrix.image.context }}
+          docker push ${IMAGE}

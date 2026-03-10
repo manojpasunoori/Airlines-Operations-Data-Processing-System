@@ -2,6 +2,51 @@
 
 AeroStream is a production-style, event-driven distributed systems portfolio project focused on airline operations intelligence. The platform ingests flight events, analyzes delay propagation in near real time, and publishes route reliability metrics to APIs and live dashboards.
 
+## 🎥 Platform Demo
+
+[![AeroStream Demo](docs/images/dashboard-placeholder.png)](https://youtube.com/PLACEHOLDER_VIDEO_LINK)
+
+A full walkthrough video demonstrates:
+
+- Real-time flight ingestion
+- Delay propagation analytics
+- Route reliability metrics
+- Live dashboard updates
+
+## 📸 Dashboard Preview
+
+### Operations Dashboard
+
+![Operations Dashboard](docs/images/dashboard-placeholder.png)
+
+Displays real-time flight status, delays, and operational KPIs.
+
+### Delay Propagation Visualization
+
+![Delay Propagation](docs/images/delay-propagation-placeholder.png)
+
+Shows cascading delays across connected routes and airports.
+
+### Route Reliability Metrics
+
+![Route Reliability](docs/images/reliability-metrics-placeholder.png)
+
+Displays reliability score per route based on historical delay events.
+
+## 🏗 System Architecture
+
+![Architecture Diagram](docs/images/architecture-placeholder.png)
+
+OpenSky API  
+-> FastAPI ingestion service  
+-> Kafka event streams  
+-> Spring Boot analytics microservices  
+-> PostgreSQL analytics store  
+-> MongoDB route configuration  
+-> GraphQL + REST API gateway  
+-> React operations dashboard  
+-> Prometheus & Grafana observability stack
+
 ## System Architecture
 
 ```mermaid

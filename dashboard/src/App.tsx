@@ -21,7 +21,7 @@ type FlightEventRow = {
 
 type ConnectionState = "connecting" | "connected" | "reconnecting";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8086";
 const LIVE_TABLE_LIMIT = 40;
 
 const reliabilityBadge = (score: number) => {

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 import os
+import random
 import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import requests
 from confluent_kafka import SerializingProducer
@@ -15,6 +16,7 @@ from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.serialization import StringSerializer
 from fastapi import FastAPI, Response
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
+from pydantic import BaseModel
 
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
@@ -35,11 +37,16 @@ SERVICE_LATENCY = Histogram("service_latency", "Latency of simulator event publi
 CONSUMER_LAG.set(0)
 
 
-app = FastAPI(title="AeroStream Flight Data Connector", version="2.0.0")
+app = FastAPI(title="AeroStream Flight Data Connector", version="2.1.0")
 LOGGER = logging.getLogger(__name__)
 
 _running = False
 _lock = threading.Lock()
+_scenario: Literal["normal", "storm"] = "normal"
+
+
+class SimulationStartRequest(BaseModel):
+    scenario: Literal["normal", "storm"] = "normal"
 
 
 def _load_schema(schema_path: str) -> str:
@@ -87,7 +94,15 @@ def _fetch_opensky_states_with_retry() -> list[list]:
     raise RuntimeError("Failed to fetch OpenSky data after retries") from last_exception
 
 
-def _transform_to_flight_event(state: list) -> Optional[dict]:
+def _storm_delay_minutes() -> int:
+    base = random.randint(20, 80)
+    # Inject occasional severe delays so the demo clearly shows propagation pressure.
+    if random.random() < 0.25:
+        base += random.randint(20, 60)
+    return base
+
+
+def _transform_to_flight_event(state: list, scenario: Literal["normal", "storm"]) -> Optional[dict]:
     if not isinstance(state, list) or len(state) < 9:
         return None
 
@@ -103,14 +118,21 @@ def _transform_to_flight_event(state: list) -> Optional[dict]:
     timestamp_epoch = int(last_contact) if isinstance(last_contact, (int, float)) else int(time.time())
     iso_timestamp = datetime.fromtimestamp(timestamp_epoch, tz=timezone.utc).isoformat()
 
+    if scenario == "storm":
+        delay_minutes = _storm_delay_minutes()
+        status = "DELAYED"
+    else:
+        delay_minutes = 0
+        status = "ON_GROUND" if on_ground else "EN_ROUTE"
+
     return {
         "flightId": callsign or icao24,
         "airline": origin_country,
         "origin": "UNKNOWN",
         "destination": "UNKNOWN",
         "timestamp": iso_timestamp,
-        "delayMinutes": 0,
-        "status": "ON_GROUND" if on_ground else "EN_ROUTE",
+        "delayMinutes": delay_minutes,
+        "status": status,
     }
 
 
@@ -121,6 +143,7 @@ def _publish_loop() -> None:
         with _lock:
             if not _running:
                 break
+            current_scenario = _scenario
 
         try:
             if producer is None:
@@ -131,7 +154,7 @@ def _publish_loop() -> None:
 
             published = 0
             for state in states:
-                event = _transform_to_flight_event(state)
+                event = _transform_to_flight_event(state, current_scenario)
                 if event is None:
                     continue
 
@@ -160,6 +183,7 @@ def health() -> dict:
     return {
         "status": "ok",
         "running": _running,
+        "scenario": _scenario,
         "topic": KAFKA_TOPIC,
         "openskyApi": OPENSKY_API_URL,
     }
@@ -171,17 +195,18 @@ def metrics() -> Response:
 
 
 @app.post("/simulation/start")
-def start_simulation() -> dict:
-    global _running
+def start_simulation(request: Optional[SimulationStartRequest] = None) -> dict:
+    global _running, _scenario
 
     with _lock:
+        _scenario = request.scenario if request is not None else "normal"
         if _running:
-            return {"status": "running"}
+            return {"status": "running", "source": "opensky", "scenario": _scenario}
         _running = True
 
     thread = threading.Thread(target=_publish_loop, daemon=True)
     thread.start()
-    return {"status": "started", "source": "opensky"}
+    return {"status": "started", "source": "opensky", "scenario": _scenario}
 
 
 @app.post("/simulation/stop")

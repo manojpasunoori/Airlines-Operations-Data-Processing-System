@@ -6,9 +6,12 @@ spring:
     name: streaming-analytics
 
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
-    properties:
-      schema.registry.url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: streaming-analytics-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
   datasource:
     url: jdbc:postgresql://postgres:5432/aerostream
@@ -22,6 +25,10 @@ spring:
   data:
     mongodb:
       uri: mongodb://mongo:27017/aerostream
+
+aerostream:
+  kafka:
+    topic: flight-events
 
 management:
   endpoints:

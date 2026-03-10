@@ -8,8 +8,8 @@ AeroStream is a production-style, event-driven distributed systems portfolio pro
 flowchart LR
     FAA["FAA/OpenSky Feeds"] --> ING["FastAPI Ingestion Service"]
     SIM["Flight Simulator"] --> ING
-    ING --> KAFKA["Kafka + Schema Registry"]
-    KAFKA --> STREAM["Spring Kafka Streams Analytics"]
+    ING --> KAFKA["Kafka (flight-events Topic)"]
+    KAFKA --> STREAM["Spring Boot Analytics Consumer"]
     STREAM --> PG[(PostgreSQL Analytics)]
     STREAM --> SSE["SSE Endpoint"]
     MONGO[(MongoDB Route Config)] --> STREAM
@@ -28,11 +28,19 @@ AeroStream uses a dual database architecture to separate workloads and optimize 
 - MongoDB (`mongodb://mongo:27017/aerostream`) stores route configuration documents used by streaming analytics.
 - All previous MySQL dependencies and runtime services have been removed from the platform.
 
+## Event Streaming Architecture
+
+AeroStream uses Kafka as the event backbone for near-real-time processing:
+
+- Producer: `services/ingestion-service` publishes flight events to topic `flight-events`.
+- Broker: Kafka receives and persists the event stream.
+- Consumer: `services/streaming-analytics` consumes from `flight-events` with Spring Kafka (`spring-kafka`).
+- Bootstrap servers: `spring.kafka.bootstrap-servers=kafka:9092`.
 ## Event Flow
 
 1. Flight events are produced by FAA/OpenSky connectors or the simulator.
-2. Ingestion validates and publishes Avro events to topic `flight.events.v1`.
-3. Streaming analytics computes 5-minute route delay windows.
+2. FastAPI ingestion publishes validated flight events to Kafka topic `flight-events`.
+3. Spring Boot analytics services consume `flight-events` using Spring Kafka listeners.
 4. Reliability scores are persisted to PostgreSQL and pushed via SSE.
 5. Route configuration is read from MongoDB.
 6. Dashboard renders live route metrics.
@@ -41,7 +49,7 @@ AeroStream uses a dual database architecture to separate workloads and optimize 
 ## Infrastructure Design
 
 - Runtime: Docker Compose for local multi-service environment.
-- Event Backbone: Kafka + Zookeeper + Schema Registry.
+- Event Backbone: Kafka + Zookeeper.
 - Data: PostgreSQL (analytics and service persistence), MongoDB (route config).
 - Observability: Prometheus, Grafana provisioning, OpenTelemetry collector.
 - Deployment: Helm chart + env values + Kustomize overlays + ArgoCD app.
@@ -50,8 +58,8 @@ AeroStream uses a dual database architecture to separate workloads and optimize 
 ## Tech Stack
 
 - Python FastAPI (`services/ingestion-service`, `services/flight-simulator`)
-- Apache Kafka + Avro schema contracts (`schemas/flight_event.avsc`)
-- Java Spring Boot + Kafka Streams (`services/streaming-analytics`)
+- Apache Kafka event streaming (`flight-events` topic)
+- Java Spring Boot + Spring Kafka consumer (`services/streaming-analytics`)
 - React + TypeScript dashboard (`dashboard`)
 - Docker + Kubernetes/Helm + ArgoCD GitOps
 
@@ -95,8 +103,8 @@ Detailed docs:
 
 ## Engineering Decisions
 
-- Kafka + Avro contracts to decouple producers/consumers and support schema evolution.
-- Spring Kafka Streams for deterministic, windowed delay propagation analytics.
+- Kafka topics decouple producers and consumers for scalable event streaming.
+- Spring Kafka consumers provide simple, reliable real-time event processing.
 - SSE for low-overhead live updates without websocket broker complexity.
 - Split operational data stores by workload: PostgreSQL analytics + MongoDB route config.
 - OTel + Prometheus metrics first-class for production debugging and SLO tracking.

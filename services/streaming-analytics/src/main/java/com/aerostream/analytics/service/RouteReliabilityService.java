@@ -39,6 +39,14 @@ public class RouteReliabilityService {
         Gauge.builder("consumer_lag", consumerLag, AtomicLong::get).register(meterRegistry);
     }
 
+    public void processFlightEvent(String origin, String destination, int delayMinutes) {
+        String route = origin + "->" + destination;
+        RouteDelayAggregation updatedAggregation = latestByRoute
+                .getOrDefault(route, new RouteDelayAggregation(0, 0, 0))
+                .add(delayMinutes);
+        update(route, updatedAggregation);
+    }
+
     public void update(String route, RouteDelayAggregation aggregation) {
         if (!routeConfigurationService.isRouteEnabled(route)) {
             return;

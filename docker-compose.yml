@@ -19,16 +19,13 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
-      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
     networks:
       - airline-net
 
@@ -41,7 +38,7 @@ services:
       - "8085:8081"
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:29092
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
     networks:
       - airline-net
@@ -50,16 +47,13 @@ services:
     build: ./services/flight-simulator
     container_name: flight-simulator
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      FLIGHT_EVENT_SCHEMA_PATH: /schemas/flight_event.avsc
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SIMULATOR_TOPIC: flight.events.v1
       SIMULATOR_INTERVAL_SECONDS: 1
     ports:
       - "8091:8091"
     depends_on:
       - kafka
-      - schema-registry
     volumes:
       - ./schemas:/schemas:ro
     networks:
@@ -68,15 +62,12 @@ services:
     build: ./services/ingestion-service
     container_name: ingestion-service
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      FLIGHT_EVENT_SCHEMA_PATH: /schemas/flight_event.avsc
-      INGESTION_TOPIC: flight.events.v1
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      INGESTION_TOPIC: flight-events
     ports:
       - "8090:8090"
     depends_on:
       - kafka
-      - schema-registry
     volumes:
       - ./schemas:/schemas:ro
     networks:
@@ -85,8 +76,7 @@ services:
     build: ./services/streaming-analytics
     container_name: streaming-analytics
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: aerostream
@@ -100,7 +90,6 @@ services:
       - "8086:8086"
     depends_on:
       - kafka
-      - schema-registry
       - postgres
       - mongo
     networks:

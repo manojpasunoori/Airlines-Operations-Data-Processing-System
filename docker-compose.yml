@@ -49,9 +49,13 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      FLIGHT_EVENT_SCHEMA_PATH: /schemas/flight_event.avsc
-      SIMULATOR_TOPIC: flight.events.v1
-      SIMULATOR_INTERVAL_SECONDS: 1
+      FLIGHT_EVENT_SCHEMA_PATH: /schemas/flight-event.avsc
+      SIMULATOR_TOPIC: flight-events
+      SIMULATOR_INTERVAL_SECONDS: 15
+      OPENSKY_API_URL: https://opensky-network.org/api/states/all
+      OPENSKY_RETRIES: 3
+      OPENSKY_RETRY_BACKOFF_SECONDS: 2
+      MAX_EVENTS_PER_POLL: 25
     ports:
       - "8091:8091"
     depends_on:
@@ -263,3 +267,4 @@ networks:
 volumes:
   postgres_data:
   mongo_data:
+

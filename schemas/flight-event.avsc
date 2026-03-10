@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "FlightEvent",
+  "namespace": "com.aerostream.events",
+  "fields": [
+    { "name": "flightId", "type": "string" },
+    { "name": "airline", "type": "string" },
+    { "name": "origin", "type": "string" },
+    { "name": "destination", "type": "string" },
+    { "name": "timestamp", "type": "string" },
+    { "name": "delayMinutes", "type": "int" },
+    { "name": "status", "type": "string" }
+  ]
+}

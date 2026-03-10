@@ -48,35 +48,44 @@ services:
     container_name: flight-simulator
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      FLIGHT_EVENT_SCHEMA_PATH: /schemas/flight_event.avsc
       SIMULATOR_TOPIC: flight.events.v1
       SIMULATOR_INTERVAL_SECONDS: 1
     ports:
       - "8091:8091"
     depends_on:
       - kafka
+      - schema-registry
     volumes:
       - ./schemas:/schemas:ro
     networks:
       - airline-net
+
   ingestion-service:
     build: ./services/ingestion-service
     container_name: ingestion-service
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      FLIGHT_EVENT_SCHEMA_PATH: /schemas/flight-event.avsc
       INGESTION_TOPIC: flight-events
     ports:
       - "8090:8090"
     depends_on:
       - kafka
+      - schema-registry
     volumes:
       - ./schemas:/schemas:ro
     networks:
       - airline-net
+
   streaming-analytics:
     build: ./services/streaming-analytics
     container_name: streaming-analytics
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: aerostream
@@ -90,10 +99,12 @@ services:
       - "8086:8086"
     depends_on:
       - kafka
+      - schema-registry
       - postgres
       - mongo
     networks:
       - airline-net
+
   postgres:
     image: postgres:15
     container_name: postgres
@@ -203,6 +214,7 @@ services:
       - gateway
     networks:
       - airline-net
+
   otel-collector:
     image: otel/opentelemetry-collector:0.109.0
     container_name: otel-collector
@@ -213,6 +225,7 @@ services:
       - "4318:4318"
     networks:
       - airline-net
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus

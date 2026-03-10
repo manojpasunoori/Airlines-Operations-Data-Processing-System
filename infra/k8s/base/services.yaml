@@ -1,0 +1,195 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+  labels:
+    app: zookeeper
+spec:
+  selector:
+    app: zookeeper
+  ports:
+    - name: client
+      port: 2181
+      targetPort: 2181
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  labels:
+    app: kafka
+spec:
+  selector:
+    app: kafka
+  ports:
+    - name: broker
+      port: 9092
+      targetPort: 9092
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: schema-registry
+  labels:
+    app: schema-registry
+spec:
+  selector:
+    app: schema-registry
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 8081
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  labels:
+    app: mongo
+spec:
+  selector:
+    app: mongo
+  ports:
+    - name: mongo
+      port: 27017
+      targetPort: 27017
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  labels:
+    app: gateway
+spec:
+  selector:
+    app: gateway
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flight-service
+  labels:
+    app: flight-service
+spec:
+  selector:
+    app: flight-service
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 8081
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: crew-service
+  labels:
+    app: crew-service
+spec:
+  selector:
+    app: crew-service
+  ports:
+    - name: http
+      port: 8082
+      targetPort: 8082
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: delay-service
+  labels:
+    app: delay-service
+spec:
+  selector:
+    app: delay-service
+  ports:
+    - name: http
+      port: 8083
+      targetPort: 8083
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kpi-service
+  labels:
+    app: kpi-service
+spec:
+  selector:
+    app: kpi-service
+  ports:
+    - name: http
+      port: 8084
+      targetPort: 8084
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: streaming-analytics
+  labels:
+    app: streaming-analytics
+spec:
+  selector:
+    app: streaming-analytics
+  ports:
+    - name: http
+      port: 8086
+      targetPort: 8086
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingestion-service
+  labels:
+    app: ingestion-service
+spec:
+  selector:
+    app: ingestion-service
+  ports:
+    - name: http
+      port: 8090
+      targetPort: 8090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flight-simulator
+  labels:
+    app: flight-simulator
+spec:
+  selector:
+    app: flight-simulator
+  ports:
+    - name: http
+      port: 8091
+      targetPort: 8091
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard
+  labels:
+    app: dashboard
+spec:
+  selector:
+    app: dashboard
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80

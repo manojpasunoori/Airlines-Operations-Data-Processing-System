@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-config
+data:
+  ENVIRONMENT: base
+  CLUSTER_PROFILE: generic
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: aerostream
+  MONGO_HOST: mongo
+  MONGO_PORT: "27017"
+  MONGO_DB: aerostream
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/aerostream
+  SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/aerostream
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  SCHEMA_REGISTRY_URL: http://schema-registry:8081
+  INGESTION_TOPIC: flight-events
+  SIMULATOR_TOPIC: flight-events
+  AEROSTREAM_KAFKA_TOPIC: flight-events
+  FLIGHT_EVENT_SCHEMA_PATH: /schemas/flight-event.avsc
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
+  OPENSKY_API_URL: https://opensky-network.org/api/states/all
+  OPENSKY_RETRIES: "3"
+  OPENSKY_RETRY_BACKOFF_SECONDS: "2"
+  SIMULATOR_INTERVAL_SECONDS: "15"
+  MAX_EVENTS_PER_POLL: "25"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flight-event-schema
+data:
+  flight-event.avsc: |
+    {
+      "type": "record",
+      "name": "FlightEvent",
+      "namespace": "com.aerostream.events",
+      "fields": [
+        { "name": "flightId", "type": "string" },
+        { "name": "airline", "type": "string" },
+        { "name": "origin", "type": "string" },
+        { "name": "destination", "type": "string" },
+        { "name": "timestamp", "type": "string" },
+        { "name": "delayMinutes", "type": "int" },
+        { "name": "status", "type": "string" }
+      ]
+    }

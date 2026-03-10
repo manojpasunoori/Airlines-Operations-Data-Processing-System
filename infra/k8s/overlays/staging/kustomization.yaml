@@ -2,8 +2,15 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../base
-nameSuffix: -staging
+namespace: aerostream-staging
 patches:
+  - target:
+      kind: Namespace
+      name: aerostream
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: aerostream-staging
   - target:
       kind: ConfigMap
       name: platform-config
@@ -13,4 +20,11 @@ patches:
         value: staging
       - op: replace
         path: /data/CLUSTER_PROFILE
-        value: eks-free-tier
+        value: aks-staging
+  - target:
+      kind: Ingress
+      name: aerostream
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: staging.aerostream.local

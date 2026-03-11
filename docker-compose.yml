@@ -72,9 +72,7 @@ services:
     command: >
       sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8091 &
              sleep 20 &&
-             curl -s -X POST http://localhost:8091/simulation/start
-               -H 'Content-Type: application/json'
-               -d '{\"scenario\":\"normal\"}' &&
+             python -c \"import urllib.request,json; urllib.request.urlopen(urllib.request.Request('http://localhost:8091/simulation/start', data=json.dumps({'scenario':'normal'}).encode(), headers={'Content-Type':'application/json'}, method='POST'))\" &&
              wait"
 
   ingestion-service:

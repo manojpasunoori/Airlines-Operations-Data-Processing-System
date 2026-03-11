@@ -40,7 +40,16 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s — %(message)s",
 )
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="AeroStream Flight Data Connector", version="2.1.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 LOGGER = logging.getLogger(__name__)
 
 _running = False

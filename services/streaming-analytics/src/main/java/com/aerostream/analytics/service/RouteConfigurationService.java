@@ -26,6 +26,10 @@ public class RouteConfigurationService {
         return getRouteConfiguration(route).isEnabled();
     }
 
+    public boolean hasConfigurations() {
+        return repository.count() > 0;
+    }
+
     public List<RouteConfigurationDocument> getAllConfigurations() {
         return repository.findAll();
     }

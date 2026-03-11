@@ -55,7 +55,7 @@ services:
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
       FLIGHT_EVENT_SCHEMA_PATH: /schemas/flight-event.avsc
       SIMULATOR_TOPIC: flight-events
-      SIMULATOR_INTERVAL_SECONDS: 15
+      SIMULATOR_INTERVAL_SECONDS: 5
       OPENSKY_API_URL: https://opensky-network.org/api/states/all
       OPENSKY_RETRIES: 3
       OPENSKY_RETRY_BACKOFF_SECONDS: 2
@@ -69,6 +69,13 @@ services:
       - ./schemas:/schemas:ro
     networks:
       - airline-net
+    command: >
+      sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8091 &
+             sleep 20 &&
+             curl -s -X POST http://localhost:8091/simulation/start
+               -H 'Content-Type: application/json'
+               -d '{\"scenario\":\"normal\"}' &&
+             wait"
 
   ingestion-service:
     build: ./services/ingestion-service
@@ -219,7 +226,7 @@ services:
     ports:
       - "5173:80"
     depends_on:
-      - gateway
+      - streaming-analytics
     networks:
       - airline-net
 
@@ -274,4 +281,3 @@ networks:
 volumes:
   postgres_data:
   mongo_data:
-

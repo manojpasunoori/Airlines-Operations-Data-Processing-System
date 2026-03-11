@@ -48,7 +48,7 @@ public class RouteReliabilityService {
     }
 
     public void update(String route, RouteDelayAggregation aggregation) {
-        if (!routeConfigurationService.isRouteEnabled(route)) {
+        if (routeConfigurationService.hasConfigurations() && !routeConfigurationService.isRouteEnabled(route)) {
             return;
         }
 
